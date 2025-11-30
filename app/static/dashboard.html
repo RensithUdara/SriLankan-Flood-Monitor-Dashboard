@@ -1040,6 +1040,23 @@
             }
         }
 
+        async function fetchWeatherData() {
+            try {
+                // Fallback mock data since we don't have a weather API key
+                return {
+                    main: { temp: 28, humidity: 78 },
+                    weather: [{ description: 'partly cloudy' }],
+                    wind: { speed: 12 }
+                };
+            } catch (e) {
+                return {
+                    main: { temp: 28, humidity: 78 },
+                    weather: [{ description: 'partly cloudy' }],
+                    wind: { speed: 12 }
+                };
+            }
+        }
+
         function updateHeaderStats(summary) {
             const container = document.getElementById('header-stats');
             const order = ['MAJOR', 'MINOR', 'ALERT', 'NORMAL'];

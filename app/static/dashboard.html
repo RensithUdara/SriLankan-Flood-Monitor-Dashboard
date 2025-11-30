@@ -119,6 +119,187 @@
             background: #28a745;
         }
 
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .tool-btn {
+            background: #0f3460;
+            border: none;
+            color: #fff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .tool-btn:hover {
+            background: #1a4a7a;
+            transform: translateY(-1px);
+        }
+
+        .tool-btn.active {
+            background: #28a745;
+        }
+
+        .analytics-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: #16213e;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .analytics-panel.open {
+            right: 0;
+        }
+
+        .analytics-header {
+            background: #0f3460;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+        }
+
+        .analytics-content {
+            padding: 1rem;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: #1a1a2e;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .chart-container {
+            background: #1a1a2e;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            background: #333;
+            border-radius: 10px;
+            height: 8px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .notification-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #16213e;
+            border-left: 4px solid #28a745;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 3000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+        }
+
+        .notification-toast.show {
+            transform: translateX(0);
+        }
+
+        .notification-toast.warning {
+            border-left-color: #ffc107;
+        }
+
+        .notification-toast.danger {
+            border-left-color: #dc3545;
+        }
+
+        .comparison-mode {
+            background: rgba(109, 179, 242, 0.1);
+            border: 2px dashed #6db3f2;
+        }
+
+        .comparison-selected {
+            background: rgba(109, 179, 242, 0.2);
+            border: 2px solid #6db3f2;
+        }
+
+        .export-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #16213e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            min-width: 150px;
+            display: none;
+        }
+
+        .export-menu.show {
+            display: block;
+        }
+
+        .export-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            border-bottom: 1px solid #333;
+        }
+
+        .export-item:hover {
+            background: #0f3460;
+        }
+
+        .weather-widget {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
         .container {
             display: flex;
             height: calc(100vh - 60px);
@@ -597,7 +778,21 @@
             </span>
         </div>
         <div class="header-controls">
-            <button class="map-toggle" id="flood-map-toggle" onclick="toggleFloodMap()">📍 Flood Map</button>
+            <div class="toolbar">
+                <button class="tool-btn" id="flood-map-toggle" onclick="toggleFloodMap()">📍 Flood Map</button>
+                <button class="tool-btn" onclick="toggleAnalytics()">📊 Analytics</button>
+                <button class="tool-btn" onclick="toggleComparison()">⚖️ Compare</button>
+                <button class="tool-btn" onclick="toggleNotifications()" id="notif-btn">🔔 Alerts</button>
+                <div style="position: relative;">
+                    <button class="tool-btn" onclick="toggleExportMenu()">📤 Export</button>
+                    <div class="export-menu" id="export-menu">
+                        <div class="export-item" onclick="exportData('csv')">📋 Export CSV</div>
+                        <div class="export-item" onclick="exportData('json')">📄 Export JSON</div>
+                        <div class="export-item" onclick="exportData('pdf')">📕 Export PDF</div>
+                        <div class="export-item" onclick="printDashboard()">🖨️ Print Report</div>
+                    </div>
+                </div>
+            </div>
             <div class="header-stats" id="header-stats"></div>
         </div>
     </div>
@@ -635,12 +830,73 @@
                         <option value="ALL">All Rivers</option>
                     </select>
                 </div>
+                
+                <div class="weather-widget" id="weather-widget">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.8rem; font-weight: 600;">🌤️ Weather</span>
+                        <span id="weather-temp" style="font-size: 1.2rem;">--°C</span>
+                    </div>
+                    <div id="weather-desc" style="font-size: 0.75rem; opacity: 0.9;">Loading...</div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.7rem;">
+                        <span>💧 <span id="weather-humidity">--%</span></span>
+                        <span>💨 <span id="weather-wind">-- km/h</span></span>
+                    </div>
+                </div>
             </div>
             <div class="station-list" id="station-list">
                 <div class="loading">Loading data...</div>
             </div>
         </div>
     </div>
+    
+    <!-- Analytics Panel -->
+    <div class="analytics-panel" id="analytics-panel">
+        <div class="analytics-header">
+            <h3>📊 Analytics Dashboard</h3>
+            <button class="modal-close" onclick="toggleAnalytics()">&times;</button>
+        </div>
+        <div class="analytics-content">
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-stations">0</div>
+                    <div class="stat-label">Total Stations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="active-alerts">0</div>
+                    <div class="stat-label">Active Alerts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avg-water-level">0.0m</div>
+                    <div class="stat-label">Avg Water Level</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-rainfall">0mm</div>
+                    <div class="stat-label">Total Rainfall</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h4 style="margin-bottom: 1rem;">Alert Distribution</h4>
+                <div id="alert-distribution"></div>
+            </div>
+            
+            <div class="chart-container">
+                <h4 style="margin-bottom: 1rem;">Basin Status</h4>
+                <div id="basin-analysis"></div>
+            </div>
+            
+            <div class="chart-container">
+                <h4 style="margin-bottom: 1rem;">Trend Analysis</h4>
+                <div id="trend-analysis"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification Toast -->
+    <div class="notification-toast" id="notification-toast">
+        <div id="notification-content"></div>
+    </div>
+    
     <!-- Chart Modal -->
     <div class="modal-overlay" id="chart-modal" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">

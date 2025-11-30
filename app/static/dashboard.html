@@ -929,6 +929,10 @@
         let allBasins = [];
         let floodMapOverlay = null;
         let isFloodMapVisible = false;
+        let isAnalyticsOpen = false;
+        let notificationsEnabled = false;
+        let lastAlertCount = 0;
+        let weatherData = null;
 
         // Initialize map centered on Sri Lanka
         const map = L.map('map').setView([7.8731, 80.7718], 8);

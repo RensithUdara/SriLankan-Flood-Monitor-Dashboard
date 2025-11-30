@@ -1394,10 +1394,43 @@
             document.getElementById('chart-modal').classList.remove('active');
         };
 
-        // Close modal on Escape key
+        // Keyboard shortcuts
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Escape') {
+                closeModal();
+                if (isAnalyticsOpen) toggleAnalytics();
+                if (isComparisonMode) toggleComparison();
+            }
+            
+            // Ctrl/Cmd + key shortcuts
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'a':
+                        e.preventDefault();
+                        toggleAnalytics();
+                        break;
+                    case 'c':
+                        e.preventDefault();
+                        toggleComparison();
+                        break;
+                    case 'm':
+                        e.preventDefault();
+                        toggleFloodMap();
+                        break;
+                    case 'n':
+                        e.preventDefault();
+                        toggleNotifications();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        toggleExportMenu();
+                        break;
+                }
+            }
         });
+
+        // Show keyboard shortcuts tooltip
+        document.title = 'Sri Lanka Flood Monitor - Shortcuts: Ctrl+A(Analytics), Ctrl+C(Compare), Ctrl+M(Map), Ctrl+N(Notifications), Ctrl+E(Export)';
 
         async function loadData() {
             const [stations, levels, summary, rivers, basins] = await Promise.all([

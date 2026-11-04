@@ -1899,15 +1899,15 @@
             modalBody.innerHTML = '<span class="modal-loading">Loading chart...</span>';
             modal.classList.add('active');
 
-            fetchStationHistory(stationName, 80).then(history => {
-                modalBody.innerHTML = renderHistoryChart(history);
+            fetchStationHistory(stationName, 120).then(history => {
+                modalBody.innerHTML = renderHistoryChart(history, stationName);
             }).catch(e => {
                 console.error('Failed to load chart history:', e);
                 modalBody.innerHTML = '<span class="modal-loading">Chart not available for this station</span>';
             });
         };
 
-        function renderHistoryChart(history) {
+        function renderHistoryChart(history, stationName) {
             const points = history
                 .filter(item => item.water_level !== null && item.water_level !== undefined && item.timestamp)
                 .slice()
@@ -1917,37 +1917,86 @@
                 return '<span class="modal-loading">Not enough live history to draw a chart</span>';
             }
 
-            const width = 760;
-            const height = 340;
-            const padding = { top: 24, right: 28, bottom: 46, left: 58 };
+            const station = allStations.find(item => item.name === stationName);
+            const width = 980;
+            const height = 560;
+            const padding = { top: 70, right: 120, bottom: 98, left: 88 };
             const values = points.map(item => item.water_level);
-            const min = Math.min(...values);
-            const max = Math.max(...values);
+            const thresholds = station ? [
+                { label: 'Major Flood', value: station.major_flood_level, color: '#ef4444' },
+                { label: 'Minor Flood', value: station.minor_flood_level, color: '#fb923c' },
+                { label: 'Alert', value: station.alert_level, color: '#d6d629' }
+            ].filter(item => item.value !== null && item.value !== undefined) : [];
+            const thresholdValues = thresholds.map(item => item.value);
+            const rawMin = Math.min(...values, ...thresholdValues);
+            const rawMax = Math.max(...values, ...thresholdValues);
+            const min = Math.min(0, rawMin - 0.15);
+            const max = rawMax + Math.max(0.2, (rawMax - min) * 0.08);
             const range = max - min || 1;
             const xFor = index => padding.left + (index / (points.length - 1)) * (width - padding.left - padding.right);
             const yFor = value => padding.top + ((max - value) / range) * (height - padding.top - padding.bottom);
             const line = points.map((item, index) => `${xFor(index).toFixed(1)},${yFor(item.water_level).toFixed(1)}`).join(' ');
             const latest = points[points.length - 1];
-            const firstTime = formatTimestamp(points[0].timestamp);
-            const latestTime = formatTimestamp(latest.timestamp);
+            const yTicks = Array.from({ length: 6 }, (_, index) => min + (range / 5) * index);
+            const xTickCount = Math.min(7, points.length);
+            const xTickIndexes = Array.from({ length: xTickCount }, (_, index) =>
+                Math.round(index * (points.length - 1) / Math.max(xTickCount - 1, 1))
+            );
+            const latestX = xFor(points.length - 1);
+            const latestY = yFor(latest.water_level);
+            const calloutX = Math.min(latestX + 42, width - padding.right - 12);
+            const calloutY = Math.max(padding.top + 18, latestY - 86);
+            const status = latest.alert_status || 'NORMAL';
+            const latestDate = new Date(latest.timestamp).toLocaleString('en-LK', {
+                timeZone: 'Asia/Colombo',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const formatTick = timestamp => new Date(timestamp).toLocaleString('en-LK', {
+                timeZone: 'Asia/Colombo',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).replace(', ', ' ');
 
             return `
-                <div style="width: min(88vw, 820px); padding: 1rem;">
-                    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Water level history chart" style="width: 100%; height: auto; display: block;">
-                        <rect x="0" y="0" width="${width}" height="${height}" rx="8" fill="#111827"></rect>
-                        <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${height - padding.bottom}" stroke="#344155"></line>
-                        <line x1="${padding.left}" y1="${height - padding.bottom}" x2="${width - padding.right}" y2="${height - padding.bottom}" stroke="#344155"></line>
-                        <text x="16" y="${padding.top + 6}" fill="#cbd5e1" font-size="13">${max.toFixed(2)}m</text>
-                        <text x="16" y="${height - padding.bottom + 4}" fill="#cbd5e1" font-size="13">${min.toFixed(2)}m</text>
-                        <polyline points="${line}" fill="none" stroke="#7cc7ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
-                        ${points.map((item, index) => `<circle cx="${xFor(index).toFixed(1)}" cy="${yFor(item.water_level).toFixed(1)}" r="${index === points.length - 1 ? 5 : 3}" fill="${index === points.length - 1 ? '#ffc107' : '#7cc7ff'}"></circle>`).join('')}
-                        <text x="${padding.left}" y="${height - 16}" fill="#9ca3af" font-size="13">${firstTime}</text>
-                        <text x="${width - padding.right}" y="${height - 16}" fill="#9ca3af" font-size="13" text-anchor="end">${latestTime}</text>
+                <div style="width: min(90vw, 1180px); padding: 1rem;">
+                    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Water level history chart" style="width: 100%; height: auto; display: block; background: #ffffff; border-radius: 6px;">
+                        <rect x="0" y="0" width="${width}" height="${height}" rx="6" fill="#ffffff"></rect>
+                        <text x="${width / 2}" y="38" fill="#111111" font-size="26" text-anchor="middle">${stationName} - River Water Level</text>
+                        ${yTicks.map(tick => `
+                            <line x1="${padding.left}" y1="${yFor(tick).toFixed(1)}" x2="${width - padding.right}" y2="${yFor(tick).toFixed(1)}" stroke="#b7b7b7" stroke-width="1"></line>
+                            <text x="${padding.left - 16}" y="${(yFor(tick) + 5).toFixed(1)}" fill="#111111" font-size="20" text-anchor="end">${Math.max(0, tick).toFixed(1)}</text>
+                        `).join('')}
+                        ${xTickIndexes.map(index => `
+                            <line x1="${xFor(index).toFixed(1)}" y1="${padding.top}" x2="${xFor(index).toFixed(1)}" y2="${height - padding.bottom}" stroke="#b7b7b7" stroke-width="1"></line>
+                            <text x="${xFor(index).toFixed(1)}" y="${height - 58}" fill="#111111" font-size="19" text-anchor="end" transform="rotate(-35 ${xFor(index).toFixed(1)} ${height - 58})">${formatTick(points[index].timestamp)}</text>
+                        `).join('')}
+                        ${thresholds.map(item => `
+                            <line x1="${padding.left}" y1="${yFor(item.value).toFixed(1)}" x2="${width - padding.right}" y2="${yFor(item.value).toFixed(1)}" stroke="${item.color}" stroke-width="3" stroke-dasharray="12 7" opacity="0.9"></line>
+                        `).join('')}
+                        <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${height - padding.bottom}" stroke="#111111" stroke-width="2"></line>
+                        <line x1="${padding.left}" y1="${height - padding.bottom}" x2="${width - padding.right}" y2="${height - padding.bottom}" stroke="#111111" stroke-width="2"></line>
+                        <polyline points="${line}" fill="none" stroke="#1f77b4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        ${points.map((item, index) => `<circle cx="${xFor(index).toFixed(1)}" cy="${yFor(item.water_level).toFixed(1)}" r="6" fill="#1f77b4"></circle>`).join('')}
+                        <text x="26" y="${height / 2}" fill="#111111" font-size="22" text-anchor="middle" transform="rotate(-90 26 ${height / 2})">Water Level (m)</text>
+                        <text x="${width / 2}" y="${height - 18}" fill="#111111" font-size="22" text-anchor="middle">Time (Sri Lanka)</text>
+                        <g transform="translate(${padding.left + 12}, ${padding.top + 12})">
+                            <rect x="0" y="0" width="205" height="${thresholds.length * 32 + 18}" fill="#ffffff" stroke="#d1d5db" opacity="0.92"></rect>
+                            ${thresholds.map((item, index) => `
+                                <line x1="18" y1="${22 + index * 32}" x2="58" y2="${22 + index * 32}" stroke="${item.color}" stroke-width="3" stroke-dasharray="12 7"></line>
+                                <text x="72" y="${28 + index * 32}" fill="#111111" font-size="20">${item.label}</text>
+                            `).join('')}
+                        </g>
+                        <line x1="${latestX.toFixed(1)}" y1="${latestY.toFixed(1)}" x2="${calloutX.toFixed(1)}" y2="${(calloutY + 50).toFixed(1)}" stroke="#111111" stroke-width="2"></line>
+                        <rect x="${calloutX}" y="${calloutY}" width="132" height="82" rx="8" fill="#4ade4a" stroke="#111111" stroke-width="2"></rect>
+                        <text x="${calloutX + 10}" y="${calloutY + 25}" fill="#111111" font-size="20">${latest.water_level.toFixed(2)}m</text>
+                        <text x="${calloutX + 10}" y="${calloutY + 49}" fill="#111111" font-size="20">${status}</text>
+                        <text x="${calloutX + 10}" y="${calloutY + 73}" fill="#111111" font-size="18">${latestDate}</text>
                     </svg>
-                    <div style="display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.75rem; color: #cbd5e1; font-size: 0.9rem;">
-                        <span>Latest: <strong>${latest.water_level.toFixed(2)}m</strong></span>
-                        <span>Records: ${points.length}</span>
-                    </div>
                 </div>
             `;
         }

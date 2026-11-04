@@ -28,6 +28,7 @@ env/
 
 # IDE
 .idea/
+.vscode/
 *.swp
 *.swo
 
@@ -36,6 +37,8 @@ env/
 Thumbs.db
 
 # Environment
+.env
+.env.local
 
 # Testing
 .pytest_cache/
@@ -44,5 +47,3 @@ htmlcov/
 
 .vercel
 .env*.local
-config.bat
-node_modules
